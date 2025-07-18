@@ -282,17 +282,16 @@ function displayRakutenProduct(rakutenData) {
 // ユーティリティ関数
 function copyToClipboard(elementId) {
     const element = document.getElementById(elementId);
-    element.select();
-    document.execCommand('copy');
-    
-    // コピー完了のフィードバック
-    const button = event.target.closest('button');
-    const originalContent = button.innerHTML;
-    button.innerHTML = '<i class="fas fa-check text-success"></i>';
-    
-    setTimeout(() => {
-        button.innerHTML = originalContent;
-    }, 1000);
+    navigator.clipboard.writeText(element.value).then(() => {
+        // コピー完了のフィードバック
+        const button = event.target.closest('button');
+        const originalContent = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check text-success"></i>';
+
+        setTimeout(() => {
+            button.innerHTML = originalContent;
+        }, 1000);
+    });
 }
 
 function updateRakutenData() {
