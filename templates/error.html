@@ -1,0 +1,41 @@
+<!-- templates/error.html - エラーページ -->
+{% extends "base.html" %}
+
+{% block title %}エラー - EC商品ページ自動作成システム{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-6 mx-auto">
+        <div class="card border-0 shadow-lg">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-exclamation-triangle text-warning" style="font-size: 4rem;"></i>
+                <h3 class="mt-3 mb-4">エラーが発生しました</h3>
+                
+                <div class="alert alert-danger text-start">
+                    <h6><i class="fas fa-bug me-2"></i>エラー詳細:</h6>
+                    <p class="mb-0">{{ error }}</p>
+                </div>
+                
+                <div class="mt-4">
+                    <h6>考えられる原因:</h6>
+                    <ul class="list-unstyled text-start">
+                        <li><i class="fas fa-circle text-primary me-2"></i>入力されたASINが正しくない</li>
+                        <li><i class="fas fa-circle text-primary me-2"></i>Amazon商品ページにアクセスできない</li>
+                        <li><i class="fas fa-circle text-primary me-2"></i>商品情報の取得に失敗した</li>
+                        <li><i class="fas fa-circle text-primary me-2"></i>ネットワークエラー</li>
+                    </ul>
+                </div>
+                
+                <div class="d-grid gap-2 col-6 mx-auto mt-4">
+                    <a href="{{ url_for('index') }}" class="btn btn-primary">
+                        <i class="fas fa-home me-2"></i>トップページに戻る
+                    </a>
+                    <button class="btn btn-outline-secondary" onclick="history.back()">
+                        <i class="fas fa-arrow-left me-2"></i>前のページに戻る
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

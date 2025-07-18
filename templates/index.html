@@ -1,0 +1,360 @@
+<!-- templates/index.html - メインページ -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-6">
+        <!-- ASIN入力フォーム -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-search me-2"></i>ASIN入力</h5>
+            </div>
+            <div class="card-body">
+                <form id="asinForm">
+                    <div class="mb-3">
+                        <label for="asinInput" class="form-label">Amazon ASIN</label>
+                        <input type="text" class="form-control form-control-lg" id="asinInput" 
+                               placeholder="例: B08XYZ1234" maxlength="10" required>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            ASINは商品詳細ページのURLまたは商品情報欄で確認できる10桁の英数字です
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-generate w-100">
+                        <i class="fas fa-magic me-2"></i>商品ページを自動生成
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 使い方説明 -->
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>使い方</h5>
+            </div>
+            <div class="card-body">
+                <ol class="mb-0">
+                    <li class="mb-2">Amazonで販売したい商品のASINを確認</li>
+                    <li class="mb-2">上記フォームにASINを入力</li>
+                    <li class="mb-2">「商品ページを自動生成」ボタンをクリック</li>
+                    <li class="mb-0">生成された楽天用商品情報を確認・編集</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <!-- ローディング表示 -->
+        <div class="loading-spinner">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h5>商品情報を取得中...</h5>
+                    <p class="text-muted">Amazon商品ページを解析し、楽天用商品データを生成しています</p>
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 75%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 結果表示エリア -->
+        <div class="result-section">
+            <!-- Amazon商品情報 -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fab fa-amazon me-2"></i>Amazon商品情報</h5>
+                </div>
+                <div class="card-body" id="amazonProduct">
+                    <!-- JavaScript で動的に生成 -->
+                </div>
+            </div>
+            
+            <!-- 楽天商品情報 -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-store me-2"></i>楽天商品情報（生成済み）</h5>
+                </div>
+                <div class="card-body" id="rakutenProduct">
+                    <!-- JavaScript で動的に生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('asinForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const asinInput = document.getElementById('asinInput');
+    const asin = asinInput.value.trim().toUpperCase();
+    
+    // ASINバリデーション
+    if (!asin) {
+        showAlert('ASINを入力してください', 'warning');
+        return;
+    }
+    
+    if (asin.length !== 10) {
+        showAlert('ASINは10文字で入力してください', 'warning');
+        return;
+    }
+    
+    // ローディング開始
+    showLoading();
+    
+    try {
+        // API呼び出し
+        const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ asin: asin })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'エラーが発生しました');
+        }
+        
+        // 結果表示
+        displayResults(data);
+        showResult();
+        showAlert('商品ページの生成が完了しました！', 'success');
+        
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert(`エラー: ${error.message}`, 'danger');
+    } finally {
+        hideLoading();
+    }
+});
+
+function displayResults(data) {
+    // Amazon商品情報を表示
+    displayAmazonProduct(data.amazon_data);
+    
+    // 楽天商品情報を表示
+    displayRakutenProduct(data.rakuten_data);
+}
+
+function displayAmazonProduct(amazonData) {
+    const container = document.getElementById('amazonProduct');
+    
+    // 画像ギャラリーのHTML生成
+    let imagesHtml = '';
+    if (amazonData.images && amazonData.images.length > 0) {
+        imagesHtml = `
+            <div class="mb-3">
+                <h6><i class="fas fa-images me-2"></i>商品画像</h6>
+                <div class="image-gallery">
+                    ${amazonData.images.map(img => `
+                        <img src="${img}" alt="商品画像" class="border rounded">
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    container.innerHTML = `
+        <div class="row">
+            <div class="col-md-8">
+                <h6><i class="fas fa-tag me-2"></i>商品名</h6>
+                <p class="fw-bold">${amazonData.title || '取得できませんでした'}</p>
+                
+                <h6><i class="fas fa-yen-sign me-2"></i>価格</h6>
+                <p class="text-success fs-5 fw-bold">${amazonData.price || '価格情報なし'}</p>
+                
+                <h6><i class="fas fa-info-circle me-2"></i>商品説明</h6>
+                <div class="border rounded p-3 bg-light">
+                    <pre style="white-space: pre-wrap; font-family: inherit;">${amazonData.description || '説明なし'}</pre>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <h6><i class="fas fa-barcode me-2"></i>ASIN</h6>
+                <p><code>${amazonData.asin}</code></p>
+                
+                ${amazonData.brand ? `
+                    <h6><i class="fas fa-copyright me-2"></i>ブランド</h6>
+                    <p>${amazonData.brand}</p>
+                ` : ''}
+            </div>
+        </div>
+        ${imagesHtml}
+    `;
+}
+
+function displayRakutenProduct(rakutenData) {
+    const container = document.getElementById('rakutenProduct');
+    
+    container.innerHTML = `
+        <div class="row">
+            <div class="col-md-8">
+                <h6><i class="fas fa-edit me-2"></i>楽天商品名</h6>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" value="${rakutenData.item_name}" 
+                           id="rakutenTitle" onchange="updateRakutenData()">
+                    <button class="btn btn-outline-secondary" type="button" 
+                            onclick="copyToClipboard('rakutenTitle')">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+                
+                <h6><i class="fas fa-yen-sign me-2"></i>楽天価格</h6>
+                <div class="price-comparison">
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted">Amazon価格</small>
+                            <div class="fs-6 fw-bold">${document.getElementById('asinInput').dataset.amazonPrice || '－'}</div>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">楽天価格（利益15%込み）</small>
+                            <div class="fs-5 fw-bold text-success">¥${rakutenData.item_price.toLocaleString()}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h6><i class="fas fa-bullhorn me-2"></i>キャッチコピー</h6>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" value="${rakutenData.catch_copy}" 
+                           id="rakutenCatchCopy">
+                    <button class="btn btn-outline-secondary" type="button" 
+                            onclick="copyToClipboard('rakutenCatchCopy')">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+                
+                <h6><i class="fas fa-align-left me-2"></i>商品説明</h6>
+                <div class="mb-3">
+                    <textarea class="form-control" rows="8" id="rakutenDescription">${rakutenData.item_description}</textarea>
+                    <button class="btn btn-outline-secondary btn-sm mt-2" type="button" 
+                            onclick="copyToClipboard('rakutenDescription')">
+                        <i class="fas fa-copy me-1"></i>説明文をコピー
+                    </button>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <h6><i class="fas fa-link me-2"></i>商品URL</h6>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control form-control-sm" 
+                           value="${rakutenData.item_url}" id="rakutenUrl" readonly>
+                    <button class="btn btn-outline-secondary btn-sm" type="button" 
+                            onclick="copyToClipboard('rakutenUrl')">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+                
+                <h6><i class="fas fa-tags me-2"></i>検索キーワード</h6>
+                <div class="mb-3">
+                    <textarea class="form-control form-control-sm" rows="3" 
+                              id="rakutenKeywords">${rakutenData.keywords}</textarea>
+                </div>
+                
+                <h6><i class="fas fa-folder me-2"></i>推奨カテゴリ</h6>
+                <p><code>${rakutenData.category_id}</code></p>
+                
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success" onclick="exportToCSV()">
+                        <i class="fas fa-download me-2"></i>CSV出力
+                    </button>
+                    <button class="btn btn-primary" onclick="previewProduct()">
+                        <i class="fas fa-eye me-2"></i>プレビュー
+                    </button>
+                    <button class="btn btn-outline-primary" onclick="copyAllData()">
+                        <i class="fas fa-copy me-2"></i>全データコピー
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// ユーティリティ関数
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    element.select();
+    document.execCommand('copy');
+    
+    // コピー完了のフィードバック
+    const button = event.target.closest('button');
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-check text-success"></i>';
+    
+    setTimeout(() => {
+        button.innerHTML = originalContent;
+    }, 1000);
+}
+
+function updateRakutenData() {
+    // 楽天データの更新処理（必要に応じて実装）
+    console.log('楽天データを更新しました');
+}
+
+function exportToCSV() {
+    // CSV出力機能
+    const data = {
+        item_name: document.getElementById('rakutenTitle').value,
+        item_price: document.querySelector('.text-success').textContent,
+        catch_copy: document.getElementById('rakutenCatchCopy').value,
+        item_description: document.getElementById('rakutenDescription').value,
+        item_url: document.getElementById('rakutenUrl').value,
+        keywords: document.getElementById('rakutenKeywords').value
+    };
+    
+    const csvContent = [
+        ['項目', '内容'],
+        ['商品名', data.item_name],
+        ['価格', data.item_price],
+        ['キャッチコピー', data.catch_copy],
+        ['商品URL', data.item_url],
+        ['キーワード', data.keywords],
+        ['商品説明', data.item_description.replace(/\n/g, ' ')]
+    ].map(row => row.map(field => `"${field}"`).join(',')).join('\n');
+    
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `rakuten_product_${new Date().getTime()}.csv`;
+    link.click();
+    
+    showAlert('CSVファイルをダウンロードしました', 'success');
+}
+
+function previewProduct() {
+    const asin = document.getElementById('asinInput').value.trim();
+    if (asin) {
+        window.open(`/preview/${asin}`, '_blank');
+    }
+}
+
+function copyAllData() {
+    const allData = {
+        商品名: document.getElementById('rakutenTitle').value,
+        価格: document.querySelector('.text-success').textContent,
+        キャッチコピー: document.getElementById('rakutenCatchCopy').value,
+        商品説明: document.getElementById('rakutenDescription').value,
+        商品URL: document.getElementById('rakutenUrl').value,
+        キーワード: document.getElementById('rakutenKeywords').value
+    };
+    
+    const textData = Object.entries(allData)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join('\n\n');
+    
+    navigator.clipboard.writeText(textData).then(() => {
+        showAlert('全データをクリップボードにコピーしました', 'success');
+    });
+}
+</script>
+{% endblock %}
+

@@ -1,0 +1,120 @@
+<!-- templates/preview.html - プレビューページ -->
+{% extends "base.html" %}
+
+{% block title %}商品プレビュー - {{ rakuten_data.item_name[:50] }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card border-0 shadow-lg">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0"><i class="fas fa-store me-2"></i>楽天商品ページプレビュー</h4>
+            </div>
+            
+            <div class="card-body p-4">
+                <!-- 商品タイトル -->
+                <h2 class="text-primary mb-3">{{ rakuten_data.item_name }}</h2>
+                
+                <!-- キャッチコピー -->
+                <div class="alert alert-warning text-center mb-4">
+                    <h5 class="mb-0">{{ rakuten_data.catch_copy }}</h5>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <!-- 商品画像 -->
+                        {% if amazon_data.images %}
+                        <div class="mb-4">
+                            <img src="{{ amazon_data.images[0] }}" 
+                                 alt="商品メイン画像" 
+                                 class="img-fluid rounded border">
+                        </div>
+                        
+                        {% if amazon_data.images|length > 1 %}
+                        <div class="row">
+                            {% for image in amazon_data.images[1:5] %}
+                            <div class="col-3 mb-2">
+                                <img src="{{ image }}" 
+                                     alt="商品サブ画像" 
+                                     class="img-fluid rounded border">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <!-- 価格情報 -->
+                        <div class="price-section mb-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="text-muted me-2">価格:</span>
+                                <span class="fs-2 fw-bold text-danger">¥{{ "{:,}".format(rakuten_data.item_price) }}</span>
+                            </div>
+                            <div class="text-success">
+                                <i class="fas fa-shipping-fast me-1"></i>送料無料
+                            </div>
+                        </div>
+                        
+                        <!-- 商品情報 -->
+                        <div class="product-info mb-4">
+                            {% if amazon_data.brand %}
+                            <div class="mb-2">
+                                <strong>ブランド:</strong> {{ amazon_data.brand }}
+                            </div>
+                            {% endif %}
+                            
+                            <div class="mb-2">
+                                <strong>商品URL:</strong> 
+                                <code>{{ rakuten_data.item_url }}</code>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <strong>カテゴリID:</strong> 
+                                <span class="badge bg-secondary">{{ rakuten_data.category_id }}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- アクションボタン -->
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-danger btn-lg">
+                                <i class="fas fa-shopping-cart me-2"></i>カートに入れる
+                            </button>
+                            <button class="btn btn-outline-danger">
+                                <i class="fas fa-heart me-2"></i>お気に入りに追加
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 商品説明 -->
+                <div class="mt-5">
+                    <h4 class="border-bottom pb-2 mb-3">商品説明</h4>
+                    <div class="product-description">
+                        <pre style="white-space: pre-wrap; font-family: inherit;">{{ rakuten_data.item_description }}</pre>
+                    </div>
+                </div>
+                
+                <!-- 検索キーワード -->
+                <div class="mt-4">
+                    <h5>検索キーワード</h5>
+                    <div class="keywords">
+                        {% for keyword in rakuten_data.keywords.split(',') %}
+                        <span class="badge bg-light text-dark me-1 mb-1">{{ keyword.strip() }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-footer text-center">
+                <button class="btn btn-primary" onclick="window.close()">
+                    <i class="fas fa-arrow-left me-2"></i>戻る
+                </button>
+                <button class="btn btn-success ms-2" onclick="window.print()">
+                    <i class="fas fa-print me-2"></i>印刷
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
