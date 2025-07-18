@@ -489,6 +489,33 @@ def preview_product(asin):
         logger.error(f"プレビューエラー: {str(e)}")
         return render_template('error.html', error=str(e))
 
+
+def test_rakuten_api():
+    """Rakuten sample.order APIへPOSTリクエストを送信して結果を返す"""
+    url = "https://api.rms.rakuten.co.jp/es/2.0/sample.order/"
+    payload = {}
+    data = json.dumps(payload)
+    headers = {
+        "Content-Type": "application/json",
+        "Content-Length": str(len(data)),
+        "Accept": "application/json"
+    }
+    response = requests.post(url, data=data, headers=headers, timeout=10)
+    logger.info(f"Rakuten API status: {response.status_code}")
+    logger.info(f"Rakuten API response: {response.text}")
+    return response
+
+
+@app.route('/api/test-rakuten', methods=['GET'])
+def test_rakuten_endpoint():
+    """Rakuten APIテスト用エンドポイント"""
+    try:
+        resp = test_rakuten_api()
+        return jsonify({"status_code": resp.status_code, "body": resp.text})
+    except Exception as e:
+        logger.error(f"Rakuten API test error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     # 開発用サーバーを起動
     # 本番環境では別のWSGIサーバー（Gunicorn等）を使用
